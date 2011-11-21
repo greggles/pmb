@@ -1,0 +1,4 @@
+name = PMB Parimutuel Betting
+description = Main module for Parimutuel Betting 
+package = Views
+core = 7.x

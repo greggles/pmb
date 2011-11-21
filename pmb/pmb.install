@@ -1,0 +1,50 @@
+<?php
+
+function pmb_schema() {
+    $schema['pmb_bets'] = array(
+    'description' => 'Stores the bets for users.',
+    'fields' => array(
+      'pmbid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The ID of the bet.',
+        'no export' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "User's {users}.uid.",
+      ),
+      'amount' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "Amount a user bet (the 'currency' is a site specific concept and not specified here).",
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The {node}.nid - refers to a "question" node.',
+      ),
+      'delta' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The {node}.nid - refers to a "question" node.',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The time that the bet was created, as a Unix timestamp.',
+      ),
+    ),
+    'primary key' => array('pmbid'),
+    'indexes' => array('uid' => array('uid'), 'nid' => array('nid')),
+  );
+
+  return $schema;
+}
