@@ -3,8 +3,12 @@
 function hook_permission() {
   return array(
     'place a bet' => array(
-      'title' => t('Place a PMB bet'), 
-      'description' => t('Allow users to place a PMB bete.'),
+      'title' => t('Place a bet'), 
+      'description' => t('Allow users to place a PMB bet.'),
+    ),
+    'administer pmb questions' => array(
+      'title' => t('Administer questions'), 
+      'description' => t('Allow admins to alter advanced question elements.'),
     ),
   );
 }
@@ -24,6 +28,13 @@ function pmb_menu() {
 
   return $items;
 }
+
+function pmb_field_access($op, $field, $obj_type, $object, $account) {
+  if ($op == 'edit' && ($field['field_name'] == 'field_outcome' || $field['field_name'] == 'field_closing_date')) {
+    return user_access('administer pmb questions');
+  }
+}
+
 
 /**
  * Page callback for a form to add bets.
@@ -108,21 +119,22 @@ function pmb_get_odds_for_node($node) {
 }
 
 function pmb_node_view($node, $view_mode) {
-  $outcomes = pmb_get_odds_for_node($node);
-  $delta = 0;
-  while (isset($node->content['field_outcome'][$delta])) {
-    $odds = empty($outcomes[$delta]['percents']) ? 0 : $outcomes[$delta]['percents'];
-    $to_win = empty($outcomes[$delta]['to_win']) ? 0 : $outcomes[$delta]['to_win'];
-    $new_markup = t('@outcome: @odds%. <a href="!place_bet">Bet $1 to win $@win</a>', array(
-      '@outcome' => $node->content['field_outcome'][$delta]['#markup'],
-      '@odds' => $odds,
-      '!place_bet' => url('pmb/add/' . $node->nid . '/' . $delta),
-      '@win' => round($to_win, 2) - 1,
-    ));
-    $node->content['field_outcome'][$delta]['#markup'] = $new_markup;
-    $delta++;
+  if ($node->type == 'question') {
+    $outcomes = pmb_get_odds_for_node($node);
+    $delta = 0;
+    while (isset($node->content['field_outcome'][$delta])) {
+      $odds = empty($outcomes[$delta]['percents']) ? 0 : $outcomes[$delta]['percents'];
+      $to_win = empty($outcomes[$delta]['to_win']) ? 0 : $outcomes[$delta]['to_win'];
+      $new_markup = t('@outcome: @odds%. <a href="!place_bet">Bet $1 to win $@win</a>', array(
+        '@outcome' => $node->content['field_outcome'][$delta]['#markup'],
+        '@odds' => $odds,
+        '!place_bet' => url('pmb/add/' . $node->nid . '/' . $delta),
+        '@win' => round($to_win, 2) - 1,
+      ));
+      $node->content['field_outcome'][$delta]['#markup'] = $new_markup;
+      $delta++;
+    }
   }
 }
-
 
 
