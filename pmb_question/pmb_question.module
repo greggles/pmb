@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the pmb_question feature.
+ */
+
+include_once('pmb_question.features.inc');
