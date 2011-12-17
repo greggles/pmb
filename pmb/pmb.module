@@ -1,5 +1,8 @@
 <?php
 
+define('PMB_QUESTION_OPEN', 1);
+define('PMB_QUESTION_CLOSED', 0);
+
 function hook_permission() {
   return array(
     'place a bet' => array(
@@ -10,28 +13,68 @@ function hook_permission() {
       'title' => t('Administer questions'), 
       'description' => t('Allow admins to alter advanced question elements.'),
     ),
+    'alter existing pmb questions' => array(
+      'title' => t('Alter existing pmb questions'), 
+      'description' => t('Allow users (usually moderators) to alter question elements after creating.'),
+    ), 
+    'close pmb questions' => array(
+      'title' => t('Close pmb questions'), 
+      'description' => t('Allow users (usually moderators) to <em>close</em> questions.'),
+    ), 
+    
   );
 }
 
 function pmb_node_delete($node) {
+  // Remove bets about deleted nodes for consistency.
   db_delete('pmb_bets')
     ->condition('nid', $node->nid)
     ->execute();
 }
 
 function pmb_menu() {
-  $items['pmb/add/%node'] = array(
-    'page callback' => 'pmb_bet_add',
-    'page arguments' => array(2),
-    'access arguments' => array('place a bet'),
+  $items['node/%node/bet/%'] = array(
+    'title' => 'Place a bet',
+    'page callback' => 'pmb_bet_add_page',
+    'page arguments' => array(1),
+    'access callback' => 'pmb_place_bet_access',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+
+  $items['node/%node/close'] = array(
+    'title' => 'Close betting',
+    'page callback' => 'pmb_bet_close_page',
+    'page arguments' => array(1),
+    'access callback' => 'pmb_close_question_access',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 11,  
   );
 
   return $items;
 }
 
+function pmb_place_bet_access($node) {
+  return user_access('place a bet') && $node->type == 'question';
+}
+
+function pmb_close_question_access($node) {
+  return user_access('close pmb questions') && $node->type == 'question';
+}
+
+/**
+ * Implements hook_field_access().
+ */
 function pmb_field_access($op, $field, $obj_type, $object, $account) {
+  // During edits, prevent normal users from changing the outcome options OR the closing date. Those are admin operations. 
   if ($op == 'edit' && ($field['field_name'] == 'field_outcome' || $field['field_name'] == 'field_closing_date')) {
-    return user_access('administer pmb questions');
+    return user_access('alter existing pmb questions');
+  }
+  // Nobody can edit the status or actual outcome. It's defaulted to open and changed to closed through the form.
+  if (!user_access('administer pmb questions') && ($field['field_name'] == 'field_question_status' || $field['field_name'] == 'field_actual_outcome')) {
+    return FALSE;
   }
 }
 
@@ -39,25 +82,23 @@ function pmb_field_access($op, $field, $obj_type, $object, $account) {
 /**
  * Page callback for a form to add bets.
  */
-function pmb_bet_add($node, $delta = NULL) {
-  if ($node->type != 'question') {
-    return drupal_access_denied();
-  }
-  
+function pmb_bet_add_page($node, $delta = NULL) {
   if (empty($node->field_outcome['und'])) {
     return t('There are no outcomes associated with this question, please contact the question author and have them add outcomes.'); 
   }
   
-  // TODO: make sure they have money to bet.
   drupal_set_title(t('Bet on %title', array('%title' => $node->title)), PASS_THROUGH);
+  if ($node->field_question_status['und'][0]['value'] == PMB_QUESTION_CLOSED) {
+    return t("You cannot bet on a closed question.");
+  }
   
   return drupal_get_form('pmb_bet_add_form', $node, $delta);
 }
 
 function pmb_bet_add_form($form, &$form_state, $node, $default_delta = NULL) {
-  // TODO  to all their money
-  // TODOlow: provide way for user to set default bet size
-  // TODOlow: allow user with some admin perm to bet on behalf of others.
+  // TODO default amount to all their money.
+  // TODO: make sure they have at least some money to bet with userpoints_get_current_points, if they do, default the bet to all their money.  
+  
   $form['pmb_bet_amount'] = array(
     '#type' => 'textfield',
     '#title' => t('Amount to bet'),
@@ -65,8 +106,8 @@ function pmb_bet_add_form($form, &$form_state, $node, $default_delta = NULL) {
   );
   
   $outcomes = $node->field_outcome['und'];
-  foreach ($outcomes as $delta => $data) {
-    $options[$delta] = $data['safe_value'];
+  foreach ($outcomes as $delta => $outcome) {
+    $options[$delta] = $outcome['safe_value'];
   }
 
   $form['pmb_bet_outcome'] = array(
@@ -90,30 +131,166 @@ function pmb_bet_add_form($form, &$form_state, $node, $default_delta = NULL) {
 function pmb_bet_add_form_validate($form, &$form_state) {
   // TODO: Confirm they have money.
   // TODO: Confirm the bet is still open.
+  // TODO: No negative bets.
 }
 
 function pmb_bet_add_form_submit($form, &$form_state) {
   global $user;
   $values = $form_state['values'];
-  $blah = db_insert('pmb_bets')
-    ->fields(array(
-      'uid' => $user->uid,
-      'amount' => $values['pmb_bet_amount'],
-      'nid' => $values['pmb_bet_nid'],
-      'delta' => $values['pmb_bet_outcome'],
-      'created' => REQUEST_TIME,
-    ))
-    ->execute();
   $node = node_load($values['pmb_bet_nid']);
-  drupal_set_message(t('Placed your bet for %amount on %outcome of %title', array('%amount' => $values['pmb_bet_amount'], '%outcome' => $node->field_outcome['und'][$values['pmb_bet_outcome']]['value'], '%title' => $node->title)));
+
+  // TODO: wrap this in a transaction and rollback if it doesn't succeed. see $transaction = db_transaction();
+  // TODO: move to something other than the form submit.
+
+  // Try to deduct the funds from userpoints with.
+  $transaction_points = userpoints_userpointsapi(
+    array(
+      'points' => -$values['pmb_bet_amount'],
+      'moderate' => FALSE,
+      'uid' => $user->uid,
+      'operation' => 'bet',
+      'description' => t('Placed your bet for @amount on @outcome of @title', array('@amount' => $values['pmb_bet_amount'], '@outcome' => $node->field_outcome['und'][$values['pmb_bet_outcome']]['value'], '@title' => $node->title)),
+      'entity_type' => 'node',
+      'entity_id' => $values['pmb_bet_nid'],
+      ));
+  if (!empty($transaction_points['status'])) {
+    // If the points went through, place their bet.
+    db_insert('pmb_bets')
+      ->fields(array(
+        'uid' => $user->uid,
+        'amount' => $values['pmb_bet_amount'],
+        'nid' => $values['pmb_bet_nid'],
+        'delta' => $values['pmb_bet_outcome'],
+        'created' => REQUEST_TIME,
+      ))
+      ->execute();
+    drupal_set_message(t('Placed your bet for %amount on %outcome of %title', array('%amount' => $values['pmb_bet_amount'], '%outcome' => $node->field_outcome['und'][$values['pmb_bet_outcome']]['value'], '%title' => $node->title)));
+    // Go back to the page they bet on.
+    $uri = entity_uri('node', $node);
+    $form_state['redirect'] = url($uri['path'], $uri['options']);
+  }
+  else {
+    drupal_set_message(t('Failed to placed your bet for %amount on %outcome of %title', array('%amount' => $values['pmb_bet_amount'], '%outcome' => $node->field_outcome['und'][$values['pmb_bet_outcome']]['value'], '%title' => $node->title)), 'error');
+  }
+}
+
+function pmb_bet_close_page($node, $delta = NULL) {
+  // TODOlow: abstract the "valid question" code so it can be called once from elsewhere.
+  if ($node->type != 'question') {
+    return drupal_not_found();
+  }
+  if (empty($node->field_outcome['und'])) {
+    return t('There are no outcomes associated with this question, please contact the question author and have them add outcomes.'); 
+  }
+  drupal_set_title(t('Close the question: %title', array('%title' => $node->title)), PASS_THROUGH);
+
+  if ($node->field_question_status['und'][0]['value'] == PMB_QUESTION_CLOSED) {
+    return t("This question is already closed and cannot be re-closed. To re-close a question it has to be opened first (the ability to re-open a question doesn't exist yet.)");
+  }
+  
+  // Warn them if they appear to be closing it "early".
+  if (REQUEST_TIME < $node->field_closing_date['und'][0]['value']) {
+    drupal_set_message(t('You are closing a question before the scheduled end time. Are you for real?'), 'warning', FALSE);
+  }
+  
+  return drupal_get_form('pmb_bet_close_form', $node, $delta);
+}
+
+function pmb_bet_close_form($form, &$form_state, $node, $default_delta = NULL) {
+  $outcomes = $node->field_outcome['und'];
+  foreach ($outcomes as $delta => $outcome) {
+    $options[$delta] = $outcome['safe_value'];
+  }
+  
+  $form['pmb_bet_nid'] = array('#type' => 'value', '#value' => $node->nid);
+  
+  $form['pmb_bet_outcome'] = array(
+    '#title' => t('Actual outcome'),
+    '#type' => 'radios',
+    '#options' => $options,
+    '#description' => t('Choose the outcome that has actually happened. Closing the question prevents new betting and distributes funds to people who bet on the outcome you select here.'),
+  );
+  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Close the question'),
+  );
+  return $form;  
+}
+
+function pmb_bet_close_form_submit($form, &$form_state) {
+  $values = $form_state['values'];
+  
+  $status = pmb_bet_close_bet($values['pmb_bet_nid'], $values['pmb_bet_outcome']);
+  // A FALSE status means it failed - let them know the problem.
+  if ($status['status'] == FALSE) {
+    drupal_set_message($status['message']);
+  }
+}
+
+function pmb_bet_close_bet($bet_nid, $actual_outcome_delta) {
+  // Load the node, set the status and actually close it.
+  $node = node_load($bet_nid);
+  if (!isset($node->field_outcome['und'][$actual_outcome_delta])) {
+    return array('status' => FALSE, 'message' => t('This question cannot be closed with that outcome.'));
+  }
+  // TODOlow: lots of other validation (is currently open, what else?).
+
+  // Close the question, assign the actual outcome.
+  $node->field_question_status['und'][0]['value'] = PMB_QUESTION_CLOSED;
+  $node->field_actual_outcome['und'][0]['value'] = $actual_outcome_delta;
+  node_save($node);
+  
+  // Distribute points associated with the close.
+  $distribute_status = pmb_distribute_closing_points($node);
+  drupal_set_message(t('Distributed %total to %count bettors.', array('%total' => $distribute_status['total_to_distribute'], '%count' => $distribute_status['count'])));
+
+  // TODOlow: better detection that things actually succeeded.
+  return array('status' => TRUE, 'message' => t('Question closed!'));
+}
+
+function pmb_distribute_closing_points($node) {
+  // TODOlow: this could be a long running operation. Consider doing this via drush/batch.
+  
+  // Get a count of all points bet on this node.
+  $total_to_distribute = db_query("SELECT SUM(amount) FROM {pmb_bets} WHERE nid = :nid", array(':nid' => $node->nid))->fetchField();
+
+  // Get users and the percent of those points that they are owed.
+  $actual_outcome_delta = $node->field_actual_outcome['und'][0]['value'];
+  $total_on_actual_outcome = db_query("SELECT SUM(amount) FROM {pmb_bets} WHERE nid = :nid AND delta = :delta", array(':nid' => $node->nid, ':delta' => $actual_outcome_delta))->fetchField();
+  
+  $percents_and_recipients = db_query("SELECT SUM(amount) as total_bet, uid FROM {pmb_bets} WHERE nid = :nid AND delta = :delta GROUP BY uid", array(':nid' => $node->nid, ':delta' => $actual_outcome_delta));
+  // TODOlow: reconsider what we do with fractional amounts? Inflation? Deflation? Round?
+  
+  $count = 0;
+  // Grant them the points.
+  foreach ($percents_and_recipients as $recipient) {
+    $count++;
+    $transaction_points = userpoints_userpointsapi(
+      array(
+        'points' => round($total_to_distribute * ($recipient->total_bet / $total_on_actual_outcome), 0),
+        'moderate' => FALSE,
+        'uid' => $recipient->uid,
+        'operation' => 'question close',
+        'description' => t('You won @winnings by betting @wager on @outcome of @title', array(
+            '@winnings' => $total_to_distribute * ($recipient->total_bet / $total_on_actual_outcome),
+            '@wager' => $recipient->total_bet,
+            '@outcome' => $actual_outcome_delta,
+            '@title' => $node->title)),
+        'entity_type' => 'node',
+        'entity_id' => $node->nid,
+        ));
+  }
+  return array('total_to_distribute' => $total_to_distribute, 'count' => $count);
 }
 
 function pmb_get_odds_for_node($node) {
+  $outcomes = array();
   $result = db_query('SELECT SUM(amount) summed, delta FROM {pmb_bets} WHERE nid = :nid GROUP BY delta', array(':nid' => $node->nid));
   $total = db_query('SELECT SUM(amount) summed FROM {pmb_bets} WHERE nid = :nid', array(':nid' => $node->nid))->fetch();
   $summed_bets = $total->summed;
   foreach ($result as $record) {
-    $outcomes[$record->delta] = array('to_win' => $summed_bets/$record->summed, 'percents' => round($record->summed/$summed_bets, 2)*100);
+    $outcomes[$record->delta] = array('to_win' => $summed_bets/$record->summed, 'percents' => round(($record->summed/$summed_bets), 3)*100);
   }
   return $outcomes;  
 }
@@ -124,12 +301,12 @@ function pmb_node_view($node, $view_mode) {
     $delta = 0;
     while (isset($node->content['field_outcome'][$delta])) {
       $odds = empty($outcomes[$delta]['percents']) ? 0 : $outcomes[$delta]['percents'];
-      $to_win = empty($outcomes[$delta]['to_win']) ? 0 : $outcomes[$delta]['to_win'];
+      $to_win = empty($outcomes[$delta]['to_win']) ? t('Untold fortunes') : round($outcomes[$delta]['to_win'], 2) -1;
       $new_markup = t('@outcome: @odds%. <a href="!place_bet">Bet $1 to win $@win</a>', array(
         '@outcome' => $node->content['field_outcome'][$delta]['#markup'],
         '@odds' => $odds,
-        '!place_bet' => url('pmb/add/' . $node->nid . '/' . $delta),
-        '@win' => round($to_win, 2) - 1,
+        '!place_bet' => url('node/' . $node->nid . '/bet/' . $delta),
+        '@win' => $to_win, 2,
       ));
       $node->content['field_outcome'][$delta]['#markup'] = $new_markup;
       $delta++;
@@ -138,3 +315,14 @@ function pmb_node_view($node, $view_mode) {
 }
 
 
+/**
+Questions:
+* Should the site be taken offline during closing of questions? It's a lot of activity...
+* Should closing a question be separated from distributing the funds for that question? 
+* Should moderators close a question, comment about a proposed close, then actually close?
+* 
+*/
+// TODO: prevent people from going negative on points.
+// TODOlow: take an optional percent of the closing to the house (most exchanges make their profit this way).
+// TODOlow: let a user set their default bet size.
+// TODOlow: allow user with some admin perm to bet on behalf of others.
