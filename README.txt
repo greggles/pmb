@@ -19,6 +19,9 @@ Installation
 Enable the pmb and pmb_question modules.
 Grant the permissions to appropriate users.
 Create some questions.
+Get users to bet.
+
+You may want to enable some "PMB" blocks like user's bets.
 
 
 Development status
