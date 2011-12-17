@@ -87,6 +87,67 @@ Good example: most popular idea based upon number of mentions in Lexis Nexis.',
     ),
   );
 
+  // Exported field: 'node-question-field_actual_outcome'
+  $fields['node-question-field_actual_outcome'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_actual_outcome',
+      'foreign keys' => array(),
+      'indexes' => array(),
+      'module' => 'number',
+      'settings' => array(),
+      'translatable' => '0',
+      'type' => 'number_integer',
+    ),
+    'field_instance' => array(
+      'bundle' => 'question',
+      'default_value' => NULL,
+      'deleted' => '0',
+      'description' => 'The delta (internal identification number) of the actual outcome. An integer starting with zero indexed integer.',
+      'display' => array(
+        'default' => array(
+          'label' => 'above',
+          'module' => 'number',
+          'settings' => array(
+            'decimal_separator' => '.',
+            'prefix_suffix' => TRUE,
+            'scale' => 0,
+            'thousand_separator' => ' ',
+          ),
+          'type' => 'number_integer',
+          'weight' => 4,
+        ),
+        'teaser' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+      ),
+      'entity_type' => 'node',
+      'field_name' => 'field_actual_outcome',
+      'label' => 'Actual outcome',
+      'required' => 0,
+      'settings' => array(
+        'max' => '',
+        'min' => '0',
+        'prefix' => '',
+        'suffix' => '',
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 0,
+        'module' => 'number',
+        'settings' => array(),
+        'type' => 'number',
+        'weight' => '35',
+      ),
+    ),
+  );
+
   // Exported field: 'node-question-field_closing_date'
   $fields['node-question-field_closing_date'] = array(
     'field_config' => array(
@@ -238,8 +299,75 @@ Good example: most popular idea based upon number of mentions in Lexis Nexis.',
     ),
   );
 
+  // Exported field: 'node-question-field_question_status'
+  $fields['node-question-field_question_status'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_question_status',
+      'foreign keys' => array(),
+      'indexes' => array(
+        'value' => array(
+          0 => 'value',
+        ),
+      ),
+      'module' => 'list',
+      'settings' => array(
+        'allowed_values' => array(
+          0 => 'closed',
+          1 => 'open',
+        ),
+        'allowed_values_function' => '',
+      ),
+      'translatable' => '0',
+      'type' => 'list_boolean',
+    ),
+    'field_instance' => array(
+      'bundle' => 'question',
+      'default_value' => array(
+        0 => array(
+          'value' => '1',
+        ),
+      ),
+      'deleted' => '0',
+      'description' => 'This field is used internally to track whether questions are open or closed. Nobody should directly edit this field.',
+      'display' => array(
+        'default' => array(
+          'label' => 'above',
+          'module' => 'list',
+          'settings' => array(),
+          'type' => 'list_default',
+          'weight' => 3,
+        ),
+        'teaser' => array(
+          'label' => 'above',
+          'settings' => array(),
+          'type' => 'hidden',
+          'weight' => 0,
+        ),
+      ),
+      'entity_type' => 'node',
+      'field_name' => 'field_question_status',
+      'label' => 'Status',
+      'required' => 0,
+      'settings' => array(
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'options',
+        'settings' => array(),
+        'type' => 'options_buttons',
+        'weight' => '34',
+      ),
+    ),
+  );
+
   // Translatables
   // Included for use with string extractors like potx.
+  t('Actual outcome');
   t('Body');
   t('Closing date');
   t('Describe the question. Provide context and specific description of the question.
@@ -249,6 +377,9 @@ Bad example: most popular idea.
 Good example: most popular idea based upon number of mentions in Lexis Nexis.');
   t('Enter the date you think this event will close.');
   t('Outcome');
+  t('Status');
+  t('The delta (internal identification number) of the actual outcome. An integer starting with zero indexed integer.');
+  t('This field is used internally to track whether questions are open or closed. Nobody should directly edit this field.');
 
   return $fields;
 }
