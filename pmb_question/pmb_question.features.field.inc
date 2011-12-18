@@ -263,7 +263,7 @@ Good example: most popular idea based upon number of mentions in Lexis Nexis.',
       'bundle' => 'question',
       'default_value' => NULL,
       'deleted' => '0',
-      'description' => '',
+      'description' => 'List each potential outcome of this question. They should be mutually exclusive and cover all possible outcomes.',
       'display' => array(
         'default' => array(
           'label' => 'above',
@@ -376,6 +376,7 @@ Be sure to give specific details about how any outcomes will be determined.
 Bad example: most popular idea.
 Good example: most popular idea based upon number of mentions in Lexis Nexis.');
   t('Enter the date you think this event will close.');
+  t('List each potential outcome of this question. They should be mutually exclusive and cover all possible outcomes.');
   t('Outcome');
   t('Status');
   t('The delta (internal identification number) of the actual outcome. An integer starting with zero indexed integer.');
