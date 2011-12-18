@@ -48,14 +48,16 @@ The current module provides the basic working features of a Pari-mutuel betting 
 
 The most important enhancements *right now* are probably in the area of usability and graphing/reporting.
 
-Potential future enhancements:
+What should happen if a question closes on an outcome where nobody has bet?
 
 ## General features:
+* better help text everywhere
 * allow a user set their default bet size so the betting process is smoother
-* take an optional percent of the closing to the house (most exchanges make their profit this way).
-* allow user with some admin permission to bet on behalf of other users
+* take an optional percent of the pool to the house at closing (most exchanges make their profit this way).
+* allow a user with some admin permission to bet on behalf of other users (is there actually a use case for this?).
 * views-enable odds for a question
 * views-enable the bets table
+* Determine if distribution of points does tend to be long-running and, if so, move it to batch OR split it from closing and drush enable it so it can run OK (or both).
 
 ## listing features (views to build)
 * create a list of all questions on the site with exposed search filters and sorts - give it a path nobody would actually want to force people to over-ride the view
@@ -70,6 +72,10 @@ In general my hope is to use the Sampler API, Chart module and Views to create a
 * show number of users
 * show number of bets per day
 * show number of questions per day
+
+## Enable automated betting
+* Services enable API functions like pmb_bet_add and pmb_bet_close_bet
+* Add more api functions as appropriate like getting a list of questions that includes a delta-keyed list of outcomes.
   
 At some point in the future it will probably make more sense to transfer to a more traditional prediction market (e.g. stubhub) with an automated-market-maker.
 
