@@ -56,11 +56,11 @@ function pmb_menu() {
 }
 
 function pmb_place_bet_access($node) {
-  return user_access('place a bet') && $node->type == 'question' && REQUEST_TIME < $node->field_closing_date['und'][0]['value'];
+  return node_access('view', $node) && user_access('place a bet') && $node->type == 'question' && REQUEST_TIME < $node->field_closing_date['und'][0]['value'];
 }
 
 function pmb_close_question_access($node) {
-  return user_access('close pmb questions') && $node->type == 'question';
+  return node_access('view', $node) && user_access('close pmb questions') && $node->type == 'question';
 }
 
 /**
@@ -72,7 +72,7 @@ function pmb_field_access($op, $field, $obj_type, $object, $account) {
     return user_access('alter existing pmb questions');
   }
   // Nobody can edit the status or actual outcome. It's defaulted to open and changed to closed through the form.
-  if ($field['field_name'] == 'field_question_status' || $field['field_name'] == 'field_actual_outcome') {
+  if (!user_access('administer questions') && ($field['field_name'] == 'field_question_status' || $field['field_name'] == 'field_actual_outcome')) {
     return FALSE;
   }
 }
@@ -346,17 +346,33 @@ function pmb_node_view($node, $view_mode) {
     while (isset($node->content['field_outcome'][$delta])) {
       $odds = empty($outcomes[$delta]['percents']) ? 0 : $outcomes[$delta]['percents'];
       $to_win = empty($outcomes[$delta]['to_win']) ? $total : round($outcomes[$delta]['to_win'], 2) -1;
-      $new_markup = t('@outcome: @odds%. <a href="!place_bet">Bet $1 to win $@win</a>', array(
-        '@outcome' => $node->content['field_outcome'][$delta]['#markup'],
-        '@odds' => $odds,
-        '!place_bet' => url('node/' . $node->nid . '/bet/' . $delta),
-        '@win' => $to_win, 2,
-      ));
+      if (REQUEST_TIME > $node->field_closing_date['und'][0]['value'] && $node->field_question_status['und'][0]['value'] != PMB_QUESTION_CLOSED) {
+        drupal_set_message(t('You may not bet on this question as the close date has passed. It will either be settled or re-opened for betting soon.'), 'status', FALSE);
+        $new_markup = t('@outcome: @odds%.', array(
+          '@outcome' => $node->content['field_outcome'][$delta]['#markup'],
+          '@odds' => $odds,
+        ));
+      }
+      else if (!empty($total)) {
+        $new_markup = t('@outcome: @odds%. <a href="!place_bet">Bet $1 to win $@win</a>', array(
+          '@outcome' => $node->content['field_outcome'][$delta]['#markup'],
+          '@odds' => $odds,
+          '!place_bet' => url('node/' . $node->nid . '/bet/' . $delta),
+          '@win' => $to_win,
+        ));
+      }
+      else {
+        $new_markup = t('@outcome. <a href="!place_bet">Be the first to bet on this outcome</a>', array(
+          '@outcome' => $node->content['field_outcome'][$delta]['#markup'],
+          '!place_bet' => url('node/' . $node->nid . '/bet/' . $delta),
+        ));
+      }
       $node->content['field_outcome'][$delta]['#markup'] = $new_markup;
       $delta++;
     }
   }
 }
+
 function pmb_block_info() {
   $blocks['pmb_your_bets'] = array(
     'info' => t("PMB: User's bets"),
@@ -391,6 +407,10 @@ function pmb_user_bets($uid = NULL, $nid = NULL) {
       return;
     }
     $node = node_load(arg(1));
+    // This should be handled by the page callback checking access, but just in case it isn't...
+    if (!node_access('view', $node)) {
+      return;
+    }
 
     if (empty($node->nid) || $node->type != 'question') {
       return;
@@ -430,9 +450,3 @@ Questions:
 * Should moderators close a question, comment about a proposed close, then actually close?
 * 
 */
-// TODOlow: take an optional percent of the closing to the house (most exchanges make their profit this way).
-// TODOlow: let a user set their default bet size.
-// TODOlow: allow user with some admin perm to bet on behalf of others.
-// TODOlow: Create a block to show bets of all players (anonymously? with names?).
-// TODO: check for node access before allowing a bet/close on a node.
-// TODO: before there are bets the ratios are wrong
