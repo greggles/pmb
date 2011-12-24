@@ -119,6 +119,16 @@ function pmb_field_access($op, $field, $obj_type, $object, $account) {
  }
 
 /**
+ * Implements hook_node_validate().
+ */
+function pmb_node_validate($node, $form, &$form_state) {
+  // Ensure that questions have at least 2 outcomes.
+  if ($node->type == 'question' && (empty($node->field_outcome['und'][1]) || empty($node->field_outcome['und'][1]['value']))) {
+    form_set_error('field_outcome', t('A Question must have at least 2 outcomes.'));
+  }
+}
+
+/**
  * Page callback for a form to add bets.
  */
 function pmb_bet_add_page($node, $delta = NULL) {
@@ -464,10 +474,10 @@ function pmb_block_info() {
 function pmb_block_view($delta = '') {
   $data = array();
   switch ($delta) {
-    case 'pmb_your_bets':
+    case 'pmb_your_bets_this_question':
       $bets = pmb_user_bets();
       if (!empty($bets)) {
-        $data['subject'] = t('Your bets');
+        $data['subject'] = t('Your bets on this question');
         $data['content'] = $bets;
       }
       break;

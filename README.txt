@@ -54,6 +54,7 @@ The most important enhancements *right now* are probably in the area of usabilit
 What should happen if a question closes on an outcome where nobody has bet?
 
 ## General features:
+* let users remove some or all of their money from a position - could be done as a negative bet as long as the negative amount is smaller than their existing bet on that outcome
 * better help text everywhere
 * allow a user set their default bet size so the betting process is smoother
 * take an optional percent of the pool to the house at closing (most exchanges make their profit this way).
