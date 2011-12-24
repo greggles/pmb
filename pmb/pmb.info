@@ -1,4 +1,13 @@
 name = PMB Parimutuel Betting
-description = Main module for Parimutuel Betting 
-package = Views
+description = "Main module for Parimutuel Betting"
+package = "Prediction markets"
 core = 7.x
+
+dependencies[] = "token"
+dependencies[] = "entity"
+dependencies[] = "entity_token"
+dependencies[] = "rules"
+dependencies[] = "rules_admin"
+dependencies[] = "userpoints"
+dependencies[] = "userpoints_rules"
+
