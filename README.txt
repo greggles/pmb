@@ -33,6 +33,9 @@ Get users to bet.
 
 You may want to enable some "PMB" blocks like "user's bets".
 
+Known bugs
+==========
+* The date field should default to "midnight tomorrow" but that's not working. 
 
 Development status
 ==================

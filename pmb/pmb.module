@@ -100,6 +100,23 @@ function pmb_field_access($op, $field, $obj_type, $object, $account) {
   }
 }
 
+/**
+ * Implements hook_form_alter().
+ */
+ function pmb_form_alter(&$form, $form_state, $form_id) {
+   if ($form_id == 'question_node_form' && $form['#node_edit_form']) {
+    // Add an after build function to hide the "all day" option.
+    $form['field_closing_date']['und'][0]['#after_build'][] = 'pmb_hide_all_day';
+   }
+ }
+
+/**
+ * After build function to hide the "all day" option on the closing date.
+ */
+ function pmb_hide_all_day($element, &$form_state) {
+  $element['all_day']['#access'] = FALSE;
+  return $element;
+ }
 
 /**
  * Page callback for a form to add bets.
