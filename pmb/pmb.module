@@ -461,7 +461,7 @@ function pmb_node_view($node, $view_mode) {
  * Implements hook_block_info().
  */
 function pmb_block_info() {
-  $blocks['pmb_your_bets'] = array(
+  $blocks['pmb_your_bets_this_question'] = array(
     'info' => t("PMB: User's bets"),
     'cache' => DRUPAL_NO_CACHE,
   );
@@ -489,25 +489,26 @@ function pmb_block_view($delta = '') {
  * Block function to show bets for a user for a nid.
  */
 function pmb_user_bets($uid = NULL, $nid = NULL) {
+  // Get some defaults if we don't have them.
   if (empty($uid)) {
     global $user;
     $uid = $user->uid;
   }
+
   if (empty($nid)) {
     $nid = arg(1);
-
     if (empty($nid)) {
       return;
     }
-    $node = node_load(arg(1));
-    // This should be handled by the page callback checking access, but just in case it isn't...
-    if (!node_access('view', $node)) {
-      return;
-    }
+  }
+  $node = node_load(arg(1));
+  // This should be handled by the page callback checking access, but just in case it isn't...
+  if (!node_access('view', $node)) {
+    return;
+  }
 
-    if (empty($node->nid) || $node->type != 'question') {
-      return;
-    }
+  if (empty($node->nid) || $node->type != 'question') {
+    return;
   }
     
   $items = array();

@@ -1,3 +1,13 @@
+Quick todos:
+Grant some more userpoints permissions like view all points.
+Create a "moderator" role and grant them permissions on questions and points.
+Create a help page about how PMB works.
+Gallery of questions to vote on
+Gallery of user avatars, with points/interests, sortable by points
+Use the userpoints translation instead of $ in the messages on the node
+Send e-mails to people when they win
+Send periodic emails notifying people of new questions
+
 Contents
 ========
 * About
