@@ -148,7 +148,7 @@ function pmb_bet_add_form($form, &$form_state, $node, $default_delta = NULL) {
   $points = userpoints_get_current_points($user->uid, 'all');
   if ($points <= 0) {
     $disabled  = TRUE; 
-    drupal_set_message(t("You have %points points so you cannot bet.", array('%points' => $points)), 'warning', TRUE);
+    drupal_set_message(t("You have %points druplicoins so you cannot bet.", array('%points' => $points)), 'warning', TRUE);
   }
   else {
     $disabled = FALSE;
@@ -438,7 +438,7 @@ function pmb_node_view($node, $view_mode) {
         ));
       }
       else if (!empty($total)) {
-        $new_markup = t('@outcome: @odds%. <a href="!place_bet">Bet $1 to win $@win</a>', array(
+        $new_markup = t('@outcome: current bets indicate @odds% likelihood. If you think this outcome is more likely, <a href="!place_bet">bet 1 druplicoin to win $@win druplicoins</a>', array(
           '@outcome' => $node->content['field_outcome'][$delta]['#markup'],
           '@odds' => $odds,
           '!place_bet' => url('node/' . $node->nid . '/bet/' . $delta),
