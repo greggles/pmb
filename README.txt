@@ -7,6 +7,7 @@ Gallery of user avatars, with points/interests, sortable by points
 Use the userpoints translation instead of $ in the messages on the node
 Send e-mails to people when they win
 Send periodic emails notifying people of new questions
+Create a dashboard block with major stats like number of bets, number of questions, number of users, etc.
 
 Contents
 ========
