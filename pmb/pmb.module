@@ -13,6 +13,8 @@ define('PMB_QUESTION_CLOSED', 0);
  * Implements hook_permission().
  */
 function pmb_permission() {
+
+  
   return array(
     'place a bet' => array(
       'title' => t('Place a bet'), 
