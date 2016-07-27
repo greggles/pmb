@@ -31,7 +31,7 @@ function pmb_permission() {
       'description' => t('Allow users (usually moderators) to <em>close</em> questions.'),
     ),
   );
-
+}
 
 /**
  * Implements hook_node_delete().
