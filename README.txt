@@ -21,8 +21,6 @@ Contents
 
 About
 =====
-This is a lot like DMB, but with more P and less D.
-
 Meant to create a Pari-mutuel Betting system where people can place bets and odds are determined by the size of other bets. The winners split the total pot based on the size of their bets on the winning outcome.
 
 Users create *questions* with specific possible *outcomes.* The outcomes should be mutually exclusive and cover the complete possible set of outcomes. Users can then place bets on those outcomes. As they bet the likelihood of different outcomes will become clear and may change over time. Once the event has happened and the question is answered, a moderator should *close* the question which will distribute the funds appropriately and prevent any new bets on the question. 
